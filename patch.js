@@ -48,6 +48,26 @@ addVeRO('Lodge, Le Creuset', "'alessi '", "'lodge ','le creuset','staub ','all-c
 addVeRO('Bose, JBL, Yamaha', "'tivoli audio'", "'bose ','sonos ','jbl ','harman kardon','sennheiser ','shure ','klipsch ','yamaha ','denon ','tivoli audio'");
 addVeRO('Nike, Adidas', "'under armour'", "'nike ','adidas ','reebok ','puma ','new balance','asics ','under armour'");
 addVeRO('Yeti, Hydro Flask', "'hydro flask'", "'hydro flask','hydroflask','yeti ','corkcicle ','stanley ','klean kanteen','camelbak ','hydro flask'");
+addVeRO('Dymo label makers', "'brady ','brady m'", "'dymo ','dymo label','labelwriter ','brady ','brady m'");
+addVeRO('EGO, DJI, Garrett, RODE', "'brady ','brady m'", "'ego power','dji ','garrett ','rode ','røde ','mossy oak','akg ','battery tender','intex ','mackie ','tascam ','brady ','brady m'");
+addVeRO('Crock-Pot, Ninja, AKG', "'brady ','brady m'", "'crock-pot','crockpot','ninja® ','swingline ','acco ','quartet ','brady ','brady m'");
+addVeRO('Ringside, Meister boxing', "'everlast '", "'ringside ','meister ','title boxing','hayabusa ','venum ','rival boxing','everlast '");
+addVeRO('Gorilla Grip, Sherpa', "'petmate '", "'gorilla grip','sherpa pet','sherpa original','petmate '");
+addVeRO('FlexiSpot, HealthyLine', "'tivoli '", "'flexispot ','uplift desk','autonomous desk','healthyline','biomat ','tivoli '");
+
+// Block electric scooters and baby safety
+(function() {
+  var blocks = ['electric scooter','e-scooter','electric bike','ebike','e-bike','electric skateboard',
+    'nursing pillow','boppy ','breastfeeding pillow','baby lounger','infant lounger',
+    'financial calculator','graphing calculator'];
+  blocks.forEach(function(kw) {
+    if (!s.includes("'" + kw + "'") || !s.includes(kw + ",'smoke detector'")) {
+      s = s.replace("var safetyDevices = ['smoke detector'", "var safetyDevices = ['" + kw + "','smoke detector'");
+      console.log('\u2705 Blocked: ' + kw);
+      applied++;
+    } else { skipped++; }
+  });
+})();
 addVeRO('Ringside, Meister, Everlast boxing', "'everlast '", "'ringside ','meister ','title boxing','hayabusa ','venum ','rival boxing','everlast '");
 addVeRO('Gorilla Grip, Sherpa brands', "'petmate '", "'gorilla grip','sherpa pet','sherpa original','sherpa bag','petmate '");
 addVeRO('FlexiSpot standing desks', "'tivoli '", "'flexispot ','uplift desk','autonomous desk','varidesk ','tivoli '");
