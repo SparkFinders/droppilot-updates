@@ -306,6 +306,19 @@ if (!h.includes('trk-btn') || !h.includes('addEventListener')) {
   applied++;
 })();
 
+// Block persistent failing photography ASINs
+(function() {
+  var badAsins = ['B017D7W57S','B07ZJFXPNW','B07314B82V','B09MNFKB2Z','B0BNKJ3L14',
+    'B07GTBWHJH','B0F9WSF4QC','B0D8PLVYH1','B0D14MXLWN','B07PMSBLTH','B08TMBXLGD','B087CZ85GV'];
+  badAsins.forEach(function(asin) {
+    if (!s.includes("'" + asin + "'")) {
+      s = s.replace("'B0FPQ94QRS'", "'" + asin + "','B0FPQ94QRS'");
+      console.log('\u2705 Blocked ASIN: ' + asin);
+      applied++;
+    } else { skipped++; }
+  });
+})();
+
 // ============================================================
 // SAVE
 // ============================================================
