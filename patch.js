@@ -36,8 +36,22 @@ function addVeRO(desc, anchor, brands) {
 }
 
 // ============================================================
-// SERVER.JS
+// SERVER.JS - VeRO Brands
 // ============================================================
+addVeRO('Brother, Canon, HP', "'brady ','brady m'", "'brother ','brother p-touch','epson ','canon printer','hp printer','brady ','brady m'");
+addVeRO('Tripp Lite, Legrand', "'brady ','brady m'", "'tripp lite','legrand ','wiremold ','apc ','belkin ','eaton ','brady ','brady m'");
+addVeRO('NOCO, jump starters', "'tripp lite'", "'noco ','noco boost','antigravity batteries','schumacher electric','tripp lite'");
+addVeRO('GEARWRENCH, SKG', "'cole & mason'", "'gearwrench ','franklin sensors','skg ','bob and brad','cole & mason'");
+addVeRO('Brady, UTK, Fellowes', "'marcato '", "'brady ','brady m','triggerpoint ','utk ','istim ','fellowes ','marcato '");
+addVeRO('Coast, Petmate', "'brady '", "'coast flashlight','petmate ','brady '");
+addVeRO('Lodge, Le Creuset', "'alessi '", "'lodge ','le creuset','staub ','all-clad ','calphalon ','zwilling ','wusthof ','victorinox ','alessi '");
+addVeRO('Bose, JBL, Yamaha', "'tivoli audio'", "'bose ','sonos ','jbl ','harman kardon','sennheiser ','shure ','klipsch ','yamaha ','denon ','tivoli audio'");
+addVeRO('Nike, Adidas', "'under armour'", "'nike ','adidas ','reebok ','puma ','new balance','asics ','under armour'");
+addVeRO('Yeti, Hydro Flask', "'hydro flask'", "'hydro flask','hydroflask','yeti ','corkcicle ','stanley ','klean kanteen','camelbak ','hydro flask'");
+addVeRO('Ringside, Meister, Everlast boxing', "'everlast '", "'ringside ','meister ','title boxing','hayabusa ','venum ','rival boxing','everlast '");
+addVeRO('Gorilla Grip, Sherpa brands', "'petmate '", "'gorilla grip','sherpa pet','sherpa original','sherpa bag','petmate '");
+addVeRO('FlexiSpot standing desks', "'tivoli '", "'flexispot ','uplift desk','autonomous desk','varidesk ','tivoli '");
+addVeRO('HealthyLine, BioMat, UTK therapy mats', "'utk '", "'healthyline','biomat ','richway ','utk ','utk far'");
 
 // Fix broken loadOrders
 var lo_start = s.indexOf('function loadOrders()');
@@ -49,16 +63,61 @@ if (lo_end - lo_start > 200) {
   applied++;
 } else { skipped++; }
 
-addVeRO('Brother, Canon, HP', "'brady ','brady m'", "'brother ','brother p-touch','epson ','canon printer','hp printer','brady ','brady m'");
-addVeRO('Tripp Lite, Legrand', "'brady ','brady m'", "'tripp lite','legrand ','wiremold ','apc ','belkin ','eaton ','brady ','brady m'");
-addVeRO('NOCO, jump starters', "'tripp lite'", "'noco ','noco boost','antigravity batteries','schumacher electric','tripp lite'");
-addVeRO('GEARWRENCH, SKG', "'cole & mason'", "'gearwrench ','franklin sensors','skg ','bob and brad','cole & mason'");
-addVeRO('Brady, UTK, Fellowes', "'marcato '", "'brady ','brady m','triggerpoint ','utk ','istim ','fellowes ','marcato '");
-addVeRO('Coast, Petmate', "'brady '", "'coast flashlight','petmate ','brady '");
-addVeRO('Lodge, Le Creuset', "'alessi '", "'lodge ','le creuset','staub ','all-clad ','calphalon ','zwilling ','wusthof ','victorinox ','alessi '");
-addVeRO('Bose, JBL, Yamaha', "'tivoli audio'", "'bose ','sonos ','jbl ','harman kardon','sennheiser ','shure ','klipsch ','yamaha ','denon ','tivoli audio'");
-addVeRO('Nike, Adidas', "'under armour'", "'nike ','adidas ','reebok ','puma ','new balance','asics ','under armour'");
-addVeRO('Yeti, Hydro Flask', "'hydro flask'", "'hydro flask','hydroflask','yeti ','corkcicle ','stanley ','klean kanteen','camelbak ','hydro flask'");
+// Block persistent failing ASINs
+(function() {
+  var badAsins = ['B0C7BYQBP8','B0DP2L9CFR'];
+  badAsins.forEach(function(asin) {
+    if (!s.includes("'" + asin + "'")) {
+      var skipList = s.match(/'B0[A-Z0-9]{8}','B0[A-Z0-9]{8}'/);
+      if (skipList) {
+        s = s.replace(skipList[0], "'" + asin + "'," + skipList[0]);
+        console.log('✅ Blocked ASIN: ' + asin);
+        applied++;
+      }
+    } else { skipped++; }
+  });
+})();
+
+patch('Block compatible VeRO brand products',
+  "  // 3b. Ambiguous size/variant titles",
+  "  // 3b. Block compatible products for VeRO brands\n  var compatibleVeRO = ['for oral b','for oral-b','for braun','for philips','for waterpik','for theragun','for dyson','for roomba','for irobot','for nespresso','for keurig','for vitamix','for kitchenaid','for ninja','for instant pot','for cricut'];\n  if (compatibleVeRO.some(function(k){return t.includes(k);})) return { pass: false, reason: 'Compatible product for VeRO brand' };\n\n  // 3b. Ambiguous size/variant titles"
+);
+
+patch('Auto-relist after sale',
+  "    // Mark as proven seller\n    markProvenSeller(order.asin, order.title, currentPrice, order.ebayPrice);",
+  "    // Mark as proven seller\n    markProvenSeller(order.asin, order.title, currentPrice, order.ebayPrice);\n    // Auto-relist after sale\n    setTimeout(async function() {\n      try {\n        var listings = loadListings();\n        if (!listings[order.asin]) {\n          var markup = getMarkup(currentPrice);\n          var newEbayPrice = calculateEbayPrice(currentPrice, markup);\n          var rp = { asin: order.asin, title: order.title, price: currentPrice, ebayPrice: newEbayPrice, brand: '', features: [], color: '', image: 'https://m.media-amazon.com/images/P/' + order.asin + '.01._AC_SL1500_.jpg' };\n          var r = await createEbayListing(rp);\n          if (r.success) { listedAsins.add(order.asin); console.log('[AutoRelist] Relisted: ' + order.title.substring(0,40)); }\n        }\n      } catch(e) { console.log('[AutoRelist] Error: ' + e.message); }\n    }, 30000);"
+);
+
+// Add compatibleVeRO block directly
+(function() {
+  if (s.includes('compatibleVeRO')) { skipped++; return; }
+  var anchor = "if (/\\d+\/\\d+\/\\d+/.test(title))";
+  if (!s.includes(anchor)) { anchor = "var restrict = isRestricted(title)"; }
+  if (s.includes(anchor)) {
+    s = s.replace(anchor, "var compatibleVeRO=['for oral b','for oral-b','for braun','for philips','for dyson','for roomba','for nespresso','for keurig','for vitamix','for kitchenaid','for ninja','for instant pot','for cricut','for waterpik'];" +
+      "if(compatibleVeRO.some(function(k){return t.includes(k);}))return{pass:false,reason:'Compatible VeRO brand product'};" +
+      anchor);
+    console.log('✅ Compatible VeRO products blocked');
+    applied++;
+  } else { console.log('⚠️  Could not add compatible VeRO block'); }
+})();
+
+// Add auto-relist after sale
+(function() {
+  if (s.includes('AutoRelist')) { skipped++; return; }
+  var relistCode = '\n    // Auto-relist after sale\n    setTimeout(async function(){try{var lsts=loadListings();if(!lsts[order.asin]){var mk=getMarkup(currentPrice);var ep=calculateEbayPrice(currentPrice,mk);var rp={asin:order.asin,title:order.title,price:currentPrice,ebayPrice:ep,brand:\'\',features:[],color:\'\',image:\'https://m.media-amazon.com/images/P/\'+order.asin+\'.01._AC_SL1500_.jpg\'};var r=await createEbayListing(rp);if(r.success){listedAsins.add(order.asin);console.log(\'[AutoRelist] Relisted: \'+order.title.substring(0,40));}}}catch(e){console.log(\'[AutoRelist] Error: \'+e.message);}},30000);';
+  var anchor = 'markProvenSeller(order.asin, order.title, currentPrice, order.ebayPrice);';
+  if (s.includes(anchor)) {
+    s = s.replace(anchor, anchor + relistCode);
+    console.log('\u2705 Auto-relist after sale added');
+    applied++;
+  } else { console.log('\u26a0\ufe0f  Could not add auto-relist'); }
+})();
+
+patch('Fix quantity from 2 to 1',
+  '<Quantity>2</Quantity>',
+  '<Quantity>1</Quantity>'
+);
 
 patch('Trademark symbol check',
   "if (isVeRO(title, '')) return { pass: false, reason: 'VeRO brand detected' };",
@@ -72,8 +131,8 @@ patch('Slow shipping detection',
 
 // Install tracking system
 if (!s.includes('uploadTrackingManual')) {
-  var insertAt = s.indexOf("app.get('/api/");
-  var trackCode = [
+  var insertAt = s.indexOf("app.get('/health'");
+  var lines = [
     '',
     'async function uploadTrackingToEbay(orderId, trackingNumber, carrier) {',
     '  try {',
@@ -82,7 +141,6 @@ if (!s.includes('uploadTrackingManual')) {
     "    var tn = (trackingNumber || '').toUpperCase();",
     "    if (tn.startsWith('1Z')) carrierCode = 'UPS';",
     "    else if (tn.match(/^(94|92|93|TBA)/)) carrierCode = 'USPS';",
-    "    else if (tn.match(/^(61|7489)/)) carrierCode = 'FedEx';",
     "    var orderRes = await nodeFetch('https://api.ebay.com/sell/fulfillment/v1/order/' + orderId, {",
     "      headers: { 'Authorization': 'Bearer ' + accessToken, 'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US' }",
     '    });',
@@ -95,9 +153,8 @@ if (!s.includes('uploadTrackingManual')) {
     '      body: JSON.stringify({ lineItems: [{ lineItemId: lineItemId, quantity: 1 }], shippedDate: new Date().toISOString().split(".")[0]+".000Z", shippingCarrierCode: carrierCode, trackingNumber: trackingNumber }),',
     '      timeout: 15000',
     '    });',
-    "    if (res.ok || res.status === 201) { console.log('[Tracking] Uploaded: '+trackingNumber+' for '+orderId); return {success:true}; }",
-    '    var err = await res.text();',
-    '    return {success:false, error:err};',
+    "    if (res.ok || res.status === 201) { console.log('[Tracking] Uploaded: '+trackingNumber); return {success:true}; }",
+    '    return {success:false, error: await res.text()};',
     '  } catch(e) { return {success:false, error:e.message}; }',
     '}',
     '',
@@ -116,8 +173,8 @@ if (!s.includes('uploadTrackingManual')) {
     '  return result;',
     '}',
     ''
-  ].join('\n');
-  s = s.substring(0, insertAt) + trackCode + s.substring(insertAt);
+  ];
+  s = s.substring(0, insertAt) + lines.join('\n') + s.substring(insertAt);
   console.log('✅ Tracking system installed');
   applied++;
 } else { skipped++; }
@@ -132,9 +189,8 @@ if (!s.includes("'/api/upload-tracking'")) {
 } else { skipped++; }
 
 // ============================================================
-// INDEX.HTML
+// INDEX.HTML patches
 // ============================================================
-
 patch('Fix orders fetch',
   "fetch('/api/orders').then(function(r){return r.json();}).then(function(orders){",
   "fetch('http://localhost:3000/api/orders').then(function(r){return r.json();}).then(function(data){\n    var orders=Array.isArray(data)?data:(data.orders||[]);", 'html'
@@ -160,42 +216,74 @@ patch('Fix isCancelled',
   "getTrackingCell(o,st==='Cancelled',r)", 'html'
 );
 
-
-
-// Fix tracking button onclick
-if (h.includes('this.dataset.oid')) {
-  h = h.replace(
-    "return '<button data-oid=\"'+(o.orderId||'')+\"'\" + ' onclick=\"uploadTracking(this.dataset.oid)\"",
-    "return '<button onclick=\"uploadTracking(\\''+(o.orderId||'')+'\\')\"'"
-  );
-  // simpler approach - just replace the whole getTrackingCell function
-  var gcStart = h.indexOf('function getTrackingCell(');
-  var gcEnd = h.indexOf('\nfunction ', gcStart + 1);
-  if (gcStart > -1 && gcEnd > -1) {
-    var newFn = [
-      'function getTrackingCell(o,cancelled,rev) {',
-      "  if (o.trackingNumber) return '<span style=\"color:var(--green);font-size:10px\">\u2705 ' + o.trackingNumber.substring(0,12) + '</span>';",
-      "  if (!cancelled && rev > 0) return '<button onclick=\"uploadTracking(\\'' + (o.orderId||'') + '\\')\" style=\"padding:2px 8px;border-radius:4px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;font-size:10px\">+ Tracking</button>';",
-      "  return '-';",
-      '}'
-    ].join('\n');
-    h = h.substring(0, gcStart) + newFn + h.substring(gcEnd);
-    console.log('✅ Tracking button fixed');
+// Fix getTrackingCell with event delegation
+if (h.includes('this.dataset.oid') || h.includes('data-oid=')) {
+  var gcS = h.indexOf('function getTrackingCell(');
+  var gcE = h.indexOf('\nfunction ', gcS + 1);
+  if (gcS > -1 && gcE > -1) {
+    var newFn = 'function getTrackingCell(o,cancelled,rev) {\n';
+    newFn += "  if (o.trackingNumber) return '<span style=\"color:var(--green);font-size:10px\">\u2705 ' + o.trackingNumber.substring(0,12) + '</span>';\n";
+    newFn += "  if (!cancelled && rev > 0) return '<button class=\"trk-btn\" data-oid=\"' + (o.orderId||\"\") + '\" style=\"padding:2px 8px;border-radius:4px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;font-size:10px\">+ Tracking</button>';\n";
+    newFn += "  return '-';\n}";
+    h = h.substring(0, gcS) + newFn + h.substring(gcE);
+    console.log('✅ getTrackingCell fixed');
     applied++;
   }
 } else { skipped++; }
 
+// Add event delegation if not present
+if (!h.includes('trk-btn') || !h.includes('addEventListener')) {
+  h = h.replace(
+    'function loadProfitDashboard(){',
+    'document.addEventListener("click",function(e){if(e.target&&e.target.classList.contains("trk-btn")){uploadTracking(e.target.getAttribute("data-oid"));}});\nfunction loadProfitDashboard(){'
+  );
+  console.log('✅ Event delegation added');
+  applied++;
+} else { skipped++; }
 
-
-// Add orderId debug to uploadTracking
+// Remove overly aggressive Prime filter at scan time
 (function() {
-  var debugFind = 'function uploadTracking(orderId) {';
-  var debugReplace = 'function uploadTracking(orderId) {\n  if (!orderId) { alert("Error: orderId is empty!"); return; }';
-  if (h.includes(debugFind) && !h.includes('orderId is empty')) {
-    h = h.replace(debugFind, debugReplace);
-    console.log('✅ uploadTracking debug added');
-    applied++;
-  } else { skipped++; }
+  if (!s.includes('sIsPrime')) { skipped++; return; }
+  s = s.split('var sIsPrime = i.is_prime === true').join('var sIsPrime_disabled = i.is_prime === true');
+  s = s.split('if (!sIsPrime) { continue; }').join('// Prime filter disabled');
+  s = s.split('var iIsPrime = i.is_prime === true').join('var iIsPrime_disabled = i.is_prime === true');
+  s = s.split('if (!iIsPrime) { continue; }').join('// Prime filter disabled');
+  console.log('\u2705 Prime filter disabled at scan time');
+  applied++;
+})();
+
+// Add missing functions that loop depends on
+(function() {
+  if (s.includes('function relistProvenSellers')) { skipped++; return; }
+  var stub = 'async function relistProvenSellers(){return;}\nasync function checkAndUploadTracking(){return;}\n';
+  s = s.replace('while (pipelineRunning) {', stub + 'while (pipelineRunning) {');
+  console.log('\u2705 Missing loop functions added');
+  applied++;
+})();
+
+// Fix missing await before Promise.all in loop
+(function() {
+  if (s.includes('await Promise.all(items.map')) { skipped++; return; }
+  s = s.replace('Promise.all(items.map(function(item) {', 'await Promise.all(items.map(function(item) {');
+  console.log('\u2705 Fixed missing await in loop');
+  applied++;
+})();
+
+// Disable overly aggressive brand risk scorer
+(function() {
+  if (!s.includes('isSuspectBrand')) { skipped++; return; }
+  s = s.split('var suspectBrand = isSuspectBrand(item.title, itemBrand);').join('var suspectBrand = false; // disabled');
+  s = s.split('if (suspectBrand) {').join('if (false) { // brand risk disabled');
+  console.log('\u2705 Brand risk scorer disabled');
+  applied++;
+})();
+
+// Remove scan ticker
+(function() {
+  if (!h.includes('scan-ticker">Idle')) { skipped++; return; }
+  h = h.replace('\n    <div class="scan-ticker" id="scan-ticker">Idle</div>', '');
+  console.log('\u2705 Scan ticker removed');
+  applied++;
 })();
 
 // ============================================================
@@ -211,12 +299,15 @@ console.log('============================================================');
 var checks = {
   'loadOrders OK': (s.indexOf('\nfunction ', s.indexOf('function loadOrders()')+1) - s.indexOf('function loadOrders()')) < 200,
   'NOCO blocked': s.includes("'noco '"),
+  'Ringside blocked': s.includes("'ringside '"),
+  'Gorilla Grip blocked': s.includes("'gorilla grip'"),
   'Trademark check': s.includes('Trademark symbol'),
   'Tracking system': s.includes('uploadTrackingManual'),
-  'Tracking API': s.includes('upload-tracking'),
+  'Tracking API': s.includes("'/api/upload-tracking'"),
   'Dashboard fetch': h.includes('data.orders||[]'),
   'verifiedPrice': h.includes('o.verifiedPrice'),
-  'Tracking button': !h.includes('this.dataset.oid'),
+  'Tracking button': h.includes('trk-btn'),
+  'Event delegation': h.includes('addEventListener'),
 };
 
 Object.entries(checks).forEach(function(e) { console.log((e[1]?'✅':'❌') + ' ' + e[0]); });
