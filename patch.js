@@ -319,6 +319,34 @@ if (!h.includes('trk-btn') || !h.includes('addEventListener')) {
   });
 })();
 
+// Fix tracking button with event delegation
+(function() {
+  if (h.includes("addEventListener('click'") && h.includes('trk-btn')) { skipped++; return; }
+  var gcS = h.indexOf('function getTrackingCell(');
+  var gcE = h.indexOf('\nfunction ', gcS + 1);
+  if (gcS > -1 && gcE > -1) {
+    var newFn = "function getTrackingCell(o,cancelled,rev) {\n";
+    newFn += "  if (o.trackingNumber) return '<span style=\"color:var(--green);font-size:10px\">✅ ' + o.trackingNumber.substring(0,12) + '</span>';\n";
+    newFn += "  if (!cancelled && rev > 0) return '<button class=\"trk-btn\" data-oid=\"'+(o.orderId||'')+'\" style=\"padding:2px 8px;border-radius:4px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;font-size:10px\">+ Tracking</button>';\n";
+    newFn += "  return '-';\n}";
+    h = h.substring(0, gcS) + newFn + h.substring(gcE);
+    console.log('\u2705 getTrackingCell fixed with trk-btn class');
+    applied++;
+  }
+  if (!h.includes("addEventListener('click'")) {
+    h = h.replace('function loadProfitDashboard(){',
+      "document.addEventListener('click',function(e){if(e.target&&e.target.classList&&e.target.classList.contains('trk-btn')){var oid=e.target.getAttribute('data-oid');uploadTracking(oid);}});\nfunction loadProfitDashboard(){");
+    console.log('\u2705 Event delegation added');
+    applied++;
+  }
+})();
+
+// Fix categories for common products
+patch('Fix surge protector category',
+  "if (t.includes('heating pad')",
+  "if (t.includes('surge protector')||t.includes('power strip')||t.includes('extension cord')) return {id:'42440',name:'Surge Protectors',type:'Surge Protector',outerMaterial:'Plastic',style:'Modern',size:'One Size',connectivity:'Wired',mattressSize:'Not Applicable',frameMaterial:'Not Applicable'};\n  if (t.includes('standing desk')||t.includes('desk converter')||t.includes('desk riser')) return {id:'131090',name:'Standing Desks',type:'Standing Desk',outerMaterial:'Wood',style:'Modern',size:'See Description',connectivity:'Not Applicable',mattressSize:'Not Applicable',frameMaterial:'Metal'};\n  if (t.includes('keyboard tray')||t.includes('keyboard drawer')) return {id:'58058',name:'Keyboard Trays',type:'Keyboard Tray',outerMaterial:'Metal',style:'Modern',size:'See Description',connectivity:'Not Applicable',mattressSize:'Not Applicable',frameMaterial:'Metal'};\n  if (t.includes('heating pad')"
+);
+
 // ============================================================
 // SAVE
 // ============================================================
